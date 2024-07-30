@@ -17,16 +17,45 @@ G = nx.Graph()
 for _, row in routes_df.iterrows():
     G.add_edge(row['City A'], row['City B'], weight=row['Distance'])
 
-# Функція для знаходження найкоротшого шляху за допомогою алгоритму Дейкстри
-def dijkstra_all_paths(graph):
-    shortest_paths = dict(nx.all_pairs_dijkstra_path(graph, weight='weight'))
-    return shortest_paths
+# Реалізація алгоритму Дейкстри
+def dijkstra(graph, start):
+    # Ініціалізація
+    distances = {vertex: float('infinity') for vertex in graph.nodes}
+    distances[start] = 0
+    visited = []
+    shortest_path = {vertex: [] for vertex in graph.nodes}
+    shortest_path[start] = [start]
+
+    while len(visited) < len(graph.nodes):
+        # Знаходимо невідвідану вершину з найменшою відстанню
+        min_distance = float('infinity')
+        current_vertex = None
+        for vertex in graph.nodes:
+            if vertex not in visited and distances[vertex] < min_distance:
+                min_distance = distances[vertex]
+                current_vertex = vertex
+
+        if current_vertex is None:
+            break
+
+        visited.append(current_vertex)
+
+        for neighbor, attributes in graph[current_vertex].items():
+            distance = distances[current_vertex] + attributes['weight']
+            if distance < distances[neighbor]:
+                distances[neighbor] = distance
+                shortest_path[neighbor] = shortest_path[current_vertex] + [neighbor]
+
+    return distances, shortest_path
 
 # Знаходимо найкоротші шляхи між усіма вершинами
-shortest_paths = dijkstra_all_paths(G)
+all_shortest_paths = {}
+for node in G.nodes:
+    distances, paths = dijkstra(G, node)
+    all_shortest_paths[node] = paths
 
-# Виведемо кілька прикладів найкоротших шляхів
-for start, paths in shortest_paths.items():
+# Виведення найкоротших шляхів між усіма вершинами
+for start, paths in all_shortest_paths.items():
     for end, path in paths.items():
         print(f"Найкоротший шлях між {start} та {end}: {path}")
 
@@ -36,5 +65,4 @@ plt.figure(figsize=(12, 8))
 nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=1000, font_size=10, font_weight='bold')
 labels = nx.get_edge_attributes(G, 'weight')
 nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
-plt.title("Transport Network Graph with Weights")
 plt.show()
